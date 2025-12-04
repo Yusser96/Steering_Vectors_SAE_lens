@@ -2,6 +2,6 @@
 
 # Python 3.11.13
 
-# pip install -e requirements.tx
+# pip install -r requirements.tx
 
 # bash pipeline.sh
