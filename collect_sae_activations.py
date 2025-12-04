@@ -263,6 +263,9 @@ def main():
             prepend_bos= False #model.cfg.default_prepend_bos,
         ).to(device)
 
+        pad_mask = (toks != model.tokenizer.pad_token_id).long()
+        pad_mask_expanded = pad_mask.unsqueeze(-1) 
+
         # Run model once, cache only the hooks we care about
         with torch.no_grad():
             _, cache = model.run_with_cache(
@@ -271,26 +274,30 @@ def main():
                 names_filter=lambda name: name in needed_hook_names,
             )
 
-        batch_size, seq_len = toks.shape
+        # batch_size, seq_len = toks.shape
         #print(toks.shape)
-        num_positions = batch_size * seq_len
-        total_tokens += num_positions
+        # num_positions = batch_size * seq_len
+        total_tokens += int(pad_mask.sum())
 
         # For every (layer, hook_name) where we have at least one SAE:
         for (layer_idx, hook_name), sae_list in saes_by_layer_and_hook.items():
             resid: torch.Tensor = cache[hook_name]  # (batch, seq, d_model)
+            
+            tmp_resid = resid * pad_mask_expanded
 
             # Update model resid stats for this layer
-            model_resid_post_over_zero[layer_idx] += resid.sum(dim=(0, 1))
-            model_resid_post_over_zero_binary[layer_idx] += (resid > 0).sum(dim=(0, 1))
+            model_resid_post_over_zero[layer_idx] += tmp_resid.sum(dim=(0, 1))
+            model_resid_post_over_zero_binary[layer_idx] += (tmp_resid > 0).sum(dim=(0, 1))
 
             # Run each SAE on this layer's resid_post
             for sae in sae_list:
                 # SAE.encode expects resid_post with shape (batch, seq, d_model)
                 sae_acts: torch.Tensor = sae.encode(resid)  # (batch, seq, d_sae)
 
-                sae_over_zero[layer_idx] += sae_acts.sum(dim=(0, 1))
-                sae_over_zero_binary[layer_idx] += (sae_acts > 0).sum(dim=(0, 1))
+                tmp_sae_acts = sae_acts * pad_mask_expanded
+
+                sae_over_zero[layer_idx] += tmp_sae_acts.sum(dim=(0, 1))
+                sae_over_zero_binary[layer_idx] += (tmp_sae_acts > 0).sum(dim=(0, 1))
 
         # Free cache for this batch
         del cache

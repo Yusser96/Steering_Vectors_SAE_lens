@@ -13,15 +13,17 @@ python3 create_data.py
 #python3 list_saes.py
 
 MODEL_ID="google/gemma-2-9b" # "google/gemma-2-2b"
-SAE_ID="gemma-scope-9b-pt-res-canonical" # "gemma-scope-2b-pt-res-canonical"
-SAE_WIDTH="16k"
+SAE_RELEASE="gemma-scope-9b-pt-res-canonical" # "gemma-scope-2b-pt-res-canonical"
+SAE_WIDTH="16k" # "32k"
+
+
 
 DIM="bad"
 python3 collect_sae_activations.py \
   --model_name $MODEL_ID \
-  --sae_release $SAE_ID \
+  --sae_release $SAE_RELEASE \
   --sae_width $SAE_WIDTH \
-  --batch_size 4 \
+  --batch_size 2 \
   --dataset_path "data/good_bad_data.json" \
   --dim $DIM \
   --output_dir activations
@@ -31,9 +33,9 @@ python3 collect_sae_activations.py \
 DIM="good"
 python3 collect_sae_activations.py \
   --model_name $MODEL_ID \
-  --sae_release $SAE_ID \
+  --sae_release $SAE_RELEASE \
   --sae_width $SAE_WIDTH \
-  --batch_size 4 \
+  --batch_size 2 \
   --dataset_path "data/good_bad_data.json" \
   --dim $DIM \
   --output_dir activations
@@ -43,7 +45,7 @@ python3 collect_sae_activations.py \
 
 python3 create_steer_vector.py \
   --model_name $MODEL_ID \
-  --sae_release $SAE_ID \
+  --sae_release $SAE_RELEASE \
   --sae_width $SAE_WIDTH \
   --dataset_path "activations" \
   --dims "good" "bad" \
@@ -58,27 +60,27 @@ DIM="good"
 ## base model (alpha=0) no sae
 python3 steering_inference.py \
   --model_name $MODEL_ID \
-  --sae_release $SAE_ID \
+  --sae_release $SAE_RELEASE \
   --sae_width $SAE_WIDTH \
   --dataset_path "vectors" \
   --dim $DIM \
   --layer 14 \
   --alpha 0.0 \
   --max_new_tokens 20 \
-  --prompt "I love mechanistic interpretability " #\
+  --prompt "Generate a simple german sentence with poitive sentiment about baseball. \nExample about Auto: Ich liebe das Auto. \nSentence about base basll:" #\
 #   --use_sae \
 
 ## steer residual stream
 python3 steering_inference.py \
   --model_name $MODEL_ID \
-  --sae_release $SAE_ID \
+  --sae_release $SAE_RELEASE \
   --sae_width $SAE_WIDTH \
   --dataset_path "vectors" \
   --dim $DIM \
   --layer 14 \
   --alpha 100.0 \
   --max_new_tokens 20 \
-  --prompt "I love mechanistic interpretability " #\
+  --prompt "Generate a simple german sentence with poitive sentiment about baseball. \nExample about Auto: Ich liebe das Auto. \nSentence about base basll:" #\
 #   --use_sae \
 
 
@@ -86,12 +88,45 @@ python3 steering_inference.py \
 ## steer SAE sparse space
 python3 steering_inference.py \
   --model_name $MODEL_ID \
-  --sae_release $SAE_ID \
+  --sae_release $SAE_RELEASE \
   --sae_width $SAE_WIDTH \
   --dataset_path "vectors" \
   --dim $DIM \
   --layer 14 \
   --alpha 100.0 \
   --max_new_tokens 20 \
-  --prompt "I love mechanistic interpretability " \
+  --prompt "Generate a simple german sentence with poitive sentiment about baseball. \nExample about Auto: Ich liebe das Auto. \nSentence about base basll:" \
+  --use_sae
+
+
+### it causes repeat?
+
+DIM="bad"
+
+## steer residual stream
+python3 steering_inference.py \
+  --model_name $MODEL_ID \
+  --sae_release $SAE_RELEASE \
+  --sae_width $SAE_WIDTH \
+  --dataset_path "vectors" \
+  --dim $DIM \
+  --layer 14 \
+  --alpha 100.0 \
+  --max_new_tokens 20 \
+  --prompt "Generate a simple german sentence with poitive sentiment about baseball. \nExample about Auto: Ich liebe das Auto. \nSentence about base basll:" #\
+#   --use_sae \
+
+
+
+## steer SAE sparse space
+python3 steering_inference.py \
+  --model_name $MODEL_ID \
+  --sae_release $SAE_RELEASE \
+  --sae_width $SAE_WIDTH \
+  --dataset_path "vectors" \
+  --dim $DIM \
+  --layer 14 \
+  --alpha 100.0 \
+  --max_new_tokens 20 \
+  --prompt "Generate a simple german sentence with poitive sentiment about baseball. \nExample about Auto: Ich liebe das Auto. \nSentence about base basll:" \
   --use_sae

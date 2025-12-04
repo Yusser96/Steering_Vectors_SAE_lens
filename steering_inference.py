@@ -216,7 +216,7 @@ def main():
     # Run generation with steering
     input_ids = model.to_tokens(
         args.prompt,
-        prepend_bos= False #model.cfg.default_prepend_bos,
+        # prepend_bos= False #model.cfg.default_prepend_bos,
     ).to(device)
 
     print("\n=== Prompt ===")
@@ -227,9 +227,10 @@ def main():
         input_ids,
         max_new_tokens=args.max_new_tokens,
         temperature=0.0,
+        freq_penalty=1.2, 
         #top_p=1.0,
         stop_at_eos=True,
-        prepend_bos=model.cfg.default_prepend_bos,
+        #prepend_bos=model.cfg.default_prepend_bos,
     )
     text = model.tokenizer.decode(output_tokens[0])
     print("=== Steered output ===")
